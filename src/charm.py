@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import socket
 
 from ops.charm import CharmBase
 from ops.main import main
@@ -40,6 +41,7 @@ class CephCsiCharm(CharmBase):
             return
 
         provisioner_socket = "unix:///csi/csi-provisioner.sock"
+        host_provisioner_socket = "/var/lib/kubelet/plugins/cephfs.csi.ceph.com/"
 
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
@@ -50,15 +52,25 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-csi",
                         "imageDetails": csi_image,
                         "args": [
-                            "--nodeid=$(NODE_ID)",
+                            f"--nodeid={socket.gethostname()}",
                             "--type=cephfs",
                             "--nodeserver=true",
-                            "--endpoint=$(CSI_ENDPOINT)",
+                            f"--endpoint={provisioner_socket}",
                             "--v=5",
                             "--drivername=cephfs.csi.ceph.com",
                             "--pidlimit=-1",
                         ],
                         "envConfig": {"CSI_ENDPOINT": provisioner_socket},
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_provisioner_socket,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
                         "ports": [
                             {
                                 "name": "metrics",
@@ -70,7 +82,7 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-provisioner",
                         "imageDetails": provisioner_image,
                         "args": [
-                            "--csi-address=$(ADDRESS)",
+                            f"--csi-address={provisioner_socket}",
                             "--v=5",
                             "--timeout=150s",
                             "--leader-election=true",
@@ -79,41 +91,81 @@ class CephCsiCharm(CharmBase):
                             "--extra-create-metadata=true",
                         ],
                         "envConfig": {"ADDRESS": provisioner_socket},
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_provisioner_socket,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
                     },
                     {
                         "name": "ceph-resizer",
                         "imageDetails": resizer_image,
                         "args": [
-                            "--csi-address=$(ADDRESS)",
+                            f"--csi-address={provisioner_socket}",
                             "--v=5",
                             "--timeout=150s",
-                            "--leader-electio=true",
+                            "--leader-election=true",
                             "--retry-interval-start=500ms",
                             "--handle-volume-inuse-error=false",
                         ],
                         "envConfig": {"ADDRESS": provisioner_socket},
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_provisioner_socket,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
                     },
                     {
                         "name": "ceph-snapshotter",
                         "imageDetails": snapshotter_image,
                         "args": [
-                            "--csi-address=$(ADDRESS)",
+                            f"--csi-address={provisioner_socket}",
                             "--v=5",
                             "--timeout=150s",
                             "--leader-election=true",
                         ],
                         "envConfig": {"ADDRESS": provisioner_socket},
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_provisioner_socket,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
                     },
                     {
                         "name": "ceph-attacher",
                         "imageDetails": attacher_image,
                         "args": [
-                            "--csi-address=$(ADDRESS)",
+                            f"--csi-address={provisioner_socket}",
                             "--v=5",
                             "--leader-election=true",
                             "--retry-interval-start=500ms",
                         ],
                         "envConfig": {"ADDRESS": provisioner_socket},
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_provisioner_socket,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
                     },
                 ],
             }
