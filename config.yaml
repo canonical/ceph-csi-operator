@@ -1,0 +1,17 @@
+options:
+  metrics-port:
+    type: int
+    default: 8080
+    description: Port to expose the liveness metrics
+  cluster-id:
+    type: string
+    default: ""
+    description: Ceph cluster ID
+  monitors:
+    type: string
+    default: ""
+    description: Comma separated list of Ceph monitors
+  subvolume-group:
+    type: string
+    default: ""
+    description: CephFS subvolume

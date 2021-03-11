@@ -1,0 +1,43 @@
+name: ceph-csi
+description: |
+  Ceph Container Storage Interface (CSI) driver for RBD, CephFS and kubernetes
+  sidecar deployment yamls of provisioner, attacher, resizer, driver-registrar
+  and snapshotter for supporting CSI functionalities.
+summary: |
+  Ceph CSI plugins implement an interface between CSI enabled Container
+  Orchestrator (CO) and Ceph cluster. It allows dynamically provisioning Ceph
+  volumes and attaching them to workloads.
+tags:
+  - storage
+maintainers:
+  - "Joseph Borg <joseph.borg@canonical.com>"
+series:
+  - kubernetes
+deployment:
+  type: daemon
+resources:
+  csi-image:
+    type: oci-image
+    description: Ceph CSI image
+    auto-fetch: true
+    upstream-source: quay.io/cephcsi/cephcsi:canary
+  provisioner-image:
+    type: oci-image
+    description: Ceph CSI Provisioner image
+    auto-fetch: true
+    upstream-source: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4
+  resizer-image:
+    type: oci-image
+    description: Ceph CSI Resizer image
+    auto-fetch: true
+    upstream-source: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1
+  snapshotter-image:
+    type: oci-image
+    description: Ceph CSI Snapshotter image
+    auto-fetch: true
+    upstream-source: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2
+  attacher-image:
+    type: oci-image
+    description: Ceph CSI Attacher image
+    auto-fetch: true
+    upstream-source: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
