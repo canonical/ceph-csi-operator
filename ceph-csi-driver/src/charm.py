@@ -46,9 +46,9 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-registrar",
                         "imageDetails": registrar_image,
                         "args": [
-                            "--v=5"
-                            f"--csi-address={csi_socket}"
-                            f"--kubelet-registration-path={host_socket_directory}csi.sock"
+                            "--v=5",
+                            f"--csi-address={csi_socket}",
+                            f"--kubelet-registration-path={host_socket_directory}csi.sock",
                         ],
                         "ports": [
                             {
