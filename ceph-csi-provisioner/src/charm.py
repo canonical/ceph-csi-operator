@@ -40,8 +40,8 @@ class CephCsiCharm(CharmBase):
             log.error(e)
             return
 
-        provisioner_socket = "unix:///csi/csi-provisioner.sock"
-        host_provisioner_socket = "/var/lib/kubelet/plugins/cephfs.csi.ceph.com/"
+        csi_socket = "unix:///csi/csi-provisioner.sock"
+        host_socket_directory = "/var/lib/kubelet/plugins/cephfs.csi.ceph.com/"
 
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
@@ -49,40 +49,10 @@ class CephCsiCharm(CharmBase):
                 "version": 3,
                 "containers": [
                     {
-                        "name": "ceph-csi",
-                        "imageDetails": csi_image,
-                        "args": [
-                            f"--nodeid={socket.gethostname()}",
-                            "--type=cephfs",
-                            "--nodeserver=true",
-                            f"--endpoint={provisioner_socket}",
-                            "--v=5",
-                            "--drivername=cephfs.csi.ceph.com",
-                            "--pidlimit=-1",
-                        ],
-                        "envConfig": {"CSI_ENDPOINT": provisioner_socket},
-                        "volumeConfig": [
-                            {
-                                "name": "socket-dir",
-                                "mountPath": "/csi",
-                                "hostPath": {
-                                    "path": host_provisioner_socket,
-                                    "type": "DirectoryOrCreate",
-                                },
-                            }
-                        ],
-                        "ports": [
-                            {
-                                "name": "metrics",
-                                "containerPort": int(self.model.config["metrics-port"]),
-                            }
-                        ],
-                    },
-                    {
                         "name": "ceph-provisioner",
                         "imageDetails": provisioner_image,
                         "args": [
-                            f"--csi-address={provisioner_socket}",
+                            f"--csi-address={csi_socket}",
                             "--v=5",
                             "--timeout=150s",
                             "--leader-election=true",
@@ -90,13 +60,18 @@ class CephCsiCharm(CharmBase):
                             "--feature-gates=Topology=false",
                             "--extra-create-metadata=true",
                         ],
-                        "envConfig": {"ADDRESS": provisioner_socket},
+                        "ports": [
+                            {
+                                "name": "metrics",
+                                "containerPort": int(self.model.config["metrics-port"]),
+                            }
+                        ],
                         "volumeConfig": [
                             {
                                 "name": "socket-dir",
                                 "mountPath": "/csi",
                                 "hostPath": {
-                                    "path": host_provisioner_socket,
+                                    "path": host_socket_directory,
                                     "type": "DirectoryOrCreate",
                                 },
                             }
@@ -106,20 +81,19 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-resizer",
                         "imageDetails": resizer_image,
                         "args": [
-                            f"--csi-address={provisioner_socket}",
+                            f"--csi-address={csi_socket}",
                             "--v=5",
                             "--timeout=150s",
                             "--leader-election=true",
                             "--retry-interval-start=500ms",
                             "--handle-volume-inuse-error=false",
                         ],
-                        "envConfig": {"ADDRESS": provisioner_socket},
                         "volumeConfig": [
                             {
                                 "name": "socket-dir",
                                 "mountPath": "/csi",
                                 "hostPath": {
-                                    "path": host_provisioner_socket,
+                                    "path": host_socket_directory,
                                     "type": "DirectoryOrCreate",
                                 },
                             }
@@ -129,18 +103,17 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-snapshotter",
                         "imageDetails": snapshotter_image,
                         "args": [
-                            f"--csi-address={provisioner_socket}",
+                            f"--csi-address={csi_socket}",
                             "--v=5",
                             "--timeout=150s",
                             "--leader-election=true",
                         ],
-                        "envConfig": {"ADDRESS": provisioner_socket},
                         "volumeConfig": [
                             {
                                 "name": "socket-dir",
                                 "mountPath": "/csi",
                                 "hostPath": {
-                                    "path": host_provisioner_socket,
+                                    "path": host_socket_directory,
                                     "type": "DirectoryOrCreate",
                                 },
                             }
@@ -150,22 +123,49 @@ class CephCsiCharm(CharmBase):
                         "name": "ceph-attacher",
                         "imageDetails": attacher_image,
                         "args": [
-                            f"--csi-address={provisioner_socket}",
+                            f"--csi-address={csi_socket}",
                             "--v=5",
                             "--leader-election=true",
                             "--retry-interval-start=500ms",
                         ],
-                        "envConfig": {"ADDRESS": provisioner_socket},
                         "volumeConfig": [
                             {
                                 "name": "socket-dir",
                                 "mountPath": "/csi",
                                 "hostPath": {
-                                    "path": host_provisioner_socket,
+                                    "path": host_socket_directory,
                                     "type": "DirectoryOrCreate",
                                 },
                             }
                         ],
+                    },
+                    {
+                        "name": "ceph-csi",
+                        "imageDetails": csi_image,
+                        "args": [
+                            f"--nodeid={socket.gethostname()}",
+                            "--type=cephfs",
+                            "--nodeserver=true",
+                            f"--endpoint={csi_socket}",
+                            "--v=5",
+                            "--drivername=cephfs.csi.ceph.com",
+                            "--pidlimit=-1",
+                        ],
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": "/csi",
+                                "hostPath": {
+                                    "path": host_socket_directory,
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
+                        "kubernetes": {
+                            "securityContext": {
+                                "privileged": True,
+                            }
+                        },
                     },
                 ],
             }

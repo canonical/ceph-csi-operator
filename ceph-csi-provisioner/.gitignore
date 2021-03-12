@@ -1,4 +1,5 @@
 *.charm
 build/
 __pycache__
+operators/argo-controller/build
 .tox

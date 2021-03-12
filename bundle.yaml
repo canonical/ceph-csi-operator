@@ -1,0 +1,10 @@
+bundle: kubernetes
+applications:
+  ceph-csi-provisioner:
+    charm: cs:ceph-csi-provisioner
+    source: ./operators/ceph-csi-provisioner
+    scale: 3
+  ceph-csi-driver:
+    charm: cs:ceph-csi-driver
+    source: ./operators/ceph-csi-driver
+    scale: 1

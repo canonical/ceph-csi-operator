@@ -1,8 +1,6 @@
-name: ceph-csi
+name: ceph-csi-provisioner
 description: |
-  Ceph Container Storage Interface (CSI) driver for RBD, CephFS and kubernetes
-  sidecar deployment yamls of provisioner, attacher, resizer, driver-registrar
-  and snapshotter for supporting CSI functionalities.
+  Ceph Container Storage Interface (CSI) driver for RBD, CephFS and Kubernetes.
 summary: |
   Ceph CSI plugins implement an interface between CSI enabled Container
   Orchestrator (CO) and Ceph cluster. It allows dynamically provisioning Ceph
