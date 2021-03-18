@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 import socket
 
 from ops.charm import CharmBase
@@ -34,8 +35,16 @@ class CephCsiCharm(CharmBase):
             log.error(e)
             return
 
-        csi_socket = "unix:///csi/csi.sock"
-        host_socket_directory = "/var/lib/kubelet/plugins/cephfs.csi.ceph.com/"
+        driver_name = "cephfs.csi.ceph.com"
+
+        csi_socket = {
+            "container": "/csi/csi.sock",
+            "host": "/var/lib/kubelet/plugins{}/csi.sock".format(driver_name),
+        }
+        registration_socket = {
+            "container": "/registration/{}-reg.sock".format(driver_name),
+            "host": "/var/lib/kubelet/plugins_registry/{}-reg.sock".format(driver_name),
+        }
 
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
@@ -47,8 +56,10 @@ class CephCsiCharm(CharmBase):
                         "imageDetails": registrar_image,
                         "args": [
                             "--v=5",
-                            f"--csi-address={csi_socket}",
-                            f"--kubelet-registration-path={host_socket_directory}csi.sock",
+                            "--csi-address={}".format(csi_socket.get("container")),
+                            "--kubelet-registration-path={}".format(
+                                registration_socket.get("host")
+                            ),
                         ],
                         "ports": [
                             {
@@ -56,27 +67,94 @@ class CephCsiCharm(CharmBase):
                                 "containerPort": int(self.model.config["metrics-port"]),
                             }
                         ],
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": os.path.dirname(
+                                    csi_socket.get("container")
+                                ),
+                                "hostPath": {
+                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "type": "DirectoryOrCreate",
+                                },
+                            },
+                            {
+                                "name": "registration-dir",
+                                "mountPath": os.path.dirname(
+                                    registration_socket.get("container")
+                                ),
+                                "hostPath": {
+                                    "path": os.path.dirname(
+                                        registration_socket.get("host")
+                                    ),
+                                    "type": "DirectoryOrCreate",
+                                },
+                            },
+                        ],
                     },
                     {
                         "name": "ceph-csi",
                         "imageDetails": csi_image,
                         "args": [
-                            f"--nodeid={socket.gethostname()}",
+                            "--nodeid={}".format(socket.gethostname()),
                             "--type=cephfs",
                             "--nodeserver=true",
-                            f"--endpoint={csi_socket}",
+                            "--endpoint=unix://{}".format(csi_socket.get("container")),
                             "--v=5",
-                            "--drivername=cephfs.csi.ceph.com",
+                            "--drivername={}".format(driver_name),
                         ],
                         "volumeConfig": [
                             {
                                 "name": "socket-dir",
-                                "mountPath": "/csi",
+                                "mountPath": os.path.dirname(
+                                    csi_socket.get("container")
+                                ),
                                 "hostPath": {
-                                    "path": host_socket_directory,
+                                    "path": os.path.dirname(csi_socket.get("host")),
                                     "type": "DirectoryOrCreate",
                                 },
-                            }
+                            },
+                            {
+                                "name": "mountpoint-dir",
+                                "mountPath": "/var/lib/kubelet/pods",
+                                "hostPath": {
+                                    "path": "/var/lib/kubelet/pods",
+                                    "type": "DirectoryOrCreate",
+                                },
+                            },
+                            {
+                                "name": "plugin-dir",
+                                "mountPath": "/var/lib/kubelet/plugins",
+                                "hostPath": {
+                                    "path": "/var/lib/kubelet/plugins",
+                                    "type": "Directory",
+                                },
+                            },
+                            {
+                                "name": "host-sys",
+                                "mountPath": "/sys",
+                                "hostPath": {"path": "/sys"},
+                            },
+                            {
+                                "name": "lib-modules",
+                                "mountPath": "/lib/modules",
+                                "hostPath": {"path": "/lib/modules"},
+                            },
+                            {
+                                "name": "host-dev",
+                                "mountPath": "/dev",
+                                "hostPath": {"path": "/dev"},
+                            },
+                            {
+                                "name": "host-mount",
+                                "mountPath": "/run/mount",
+                                "hostPath": {"path": "/run/mount"},
+                            },
+                            # {
+                            #     "name": "ceph-csi-config",
+                            #     "mountPath": "/etc/ceph-csi-config",
+                            # },
+                            # {"name": "keys-tmp-dir", "mountPath": "/tmp/csi/keys"},
                         ],
                         "kubernetes": {
                             "securityContext": {
