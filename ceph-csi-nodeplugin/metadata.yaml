@@ -1,0 +1,26 @@
+name: ceph-csi-nodeplugin
+description: |
+  Ceph Container Storage Interface (CSI) driver for RBD, CephFS and Kubernetes.
+summary: |
+  Ceph CSI plugins implement an interface between CSI enabled Container
+  Orchestrator (CO) and Ceph cluster. It allows dynamically provisioning Ceph
+  volumes and attaching them to workloads.
+tags:
+  - storage
+maintainers:
+  - "Joseph Borg <joseph.borg@canonical.com>"
+series:
+  - kubernetes
+deployment:
+  type: daemon
+resources:
+  csi-image:
+    type: oci-image
+    description: Ceph CSI image
+    auto-fetch: true
+    upstream-source: quay.io/cephcsi/cephcsi:v3.2.1
+  registrar-image:
+    type: oci-image
+    description: Ceph CSI Registrar image
+    auto-fetch: true
+    upstream-source: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
