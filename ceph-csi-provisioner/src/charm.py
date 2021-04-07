@@ -112,9 +112,14 @@ class CephCsiCharm(CharmBase):
                             "--leader-election=true",
                         ],
                         "volumeConfig": [csi_volume],
+                        "kubernetes": {
+                            "securityContext": {
+                                "privileged": True,
+                            }
+                        },
                     },
                     {
-                        "name": "ceph-attacher",
+                        "name": "csi-cephfsplugin-attacher",
                         "imageDetails": attacher_image,
                         "args": [
                             "--csi-address={}".format(csi_socket.get("container")),
@@ -126,7 +131,7 @@ class CephCsiCharm(CharmBase):
                         "envConfig": default_environment,
                     },
                     {
-                        "name": "ceph-csi",
+                        "name": "csi-cephfsplugin",
                         "imageDetails": csi_image,
                         "args": [
                             "--nodeid={}".format(socket.gethostname()),
@@ -182,6 +187,33 @@ class CephCsiCharm(CharmBase):
                                 "privileged": True,
                             }
                         },
+                    },
+                    {
+                        "name": "liveness-prometheus",
+                        "imageDetails": csi_image,
+                        "args": [
+                            "--type=liveness",
+                            "--endpoint=unix://{}".format(csi_socket.get("container")),
+                            "--metricsport={}".format(
+                                self.model.config.get("metrics-port")
+                            ),
+                            "--metricspath=/metrics",
+                            "--polltime=60s",
+                            "--timeout=3s",
+                        ],
+                        "volumeConfig": [
+                            {
+                                "name": "socket-dir",
+                                "mountPath": os.path.dirname(
+                                    csi_socket.get("container")
+                                ),
+                                "hostPath": {
+                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
+                        "envConfig": default_environment,
                     },
                 ],
             }
