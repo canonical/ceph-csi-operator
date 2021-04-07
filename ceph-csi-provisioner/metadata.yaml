@@ -18,7 +18,7 @@ resources:
     type: oci-image
     description: Ceph CSI image
     auto-fetch: true
-    upstream-source: quay.io/cephcsi/cephcsi:canary
+    upstream-source: quay.io/cephcsi/cephcsi:v3.2.1
   provisioner-image:
     type: oci-image
     description: Ceph CSI Provisioner image

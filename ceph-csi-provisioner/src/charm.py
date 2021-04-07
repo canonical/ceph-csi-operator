@@ -57,6 +57,12 @@ class CephCsiCharm(CharmBase):
             },
         }
 
+        default_environment = {
+            "NODE_ID": {"field": {"path": "spec.nodeName", "api-version": "v1"}},
+            "POD_IP": {"field": {"path": "status.podIP", "api-version": "v1"}},
+            "CSI_ENDPOINT": "unix://{}".format(csi_socket.get("container")),
+        }
+
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
             {
@@ -94,6 +100,7 @@ class CephCsiCharm(CharmBase):
                             "--handle-volume-inuse-error=false",
                         ],
                         "volumeConfig": [csi_volume],
+                        "envConfig": default_environment,
                     },
                     {
                         "name": "ceph-snapshotter",
@@ -116,6 +123,7 @@ class CephCsiCharm(CharmBase):
                             "--retry-interval-start=500ms",
                         ],
                         "volumeConfig": [csi_volume],
+                        "envConfig": default_environment,
                     },
                     {
                         "name": "ceph-csi",
@@ -168,6 +176,7 @@ class CephCsiCharm(CharmBase):
                                 "hostPath": {"path": "/run/mount"},
                             },
                         ],
+                        "envConfig": default_environment,
                         "kubernetes": {
                             "securityContext": {
                                 "privileged": True,
