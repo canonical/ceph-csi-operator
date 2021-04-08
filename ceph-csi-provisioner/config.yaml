@@ -1,7 +1,7 @@
 options:
   metrics-port:
     type: int
-    default: 8080
+    default: 8681
     description: Port to expose the liveness metrics
   cluster-id:
     type: string

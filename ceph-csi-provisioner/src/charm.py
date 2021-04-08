@@ -136,7 +136,7 @@ class CephCsiCharm(CharmBase):
                         "args": [
                             "--nodeid={}".format(socket.gethostname()),
                             "--type=cephfs",
-                            "--nodeserver=true",
+                            "--controllerserver=true",
                             "--endpoint=unix://{}".format(csi_socket.get("container")),
                             "--v=5",
                             "--drivername={}".format(driver_name),
@@ -216,7 +216,124 @@ class CephCsiCharm(CharmBase):
                         "envConfig": default_environment,
                     },
                 ],
-            }
+            },
+            k8s_resources={
+                "kubernetesResources": {
+                    "serviceAccounts": [
+                        {
+                            "name": "cephfs-csi-provisioner",
+                            "roles": [
+                                {
+                                    "name": "cephfs-csi-provisioner-runner",
+                                    "global": True,
+                                    "rules": [
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["nodes"],
+                                            "verbs": ["get", "list", "watch"],
+                                        },
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["secrets"],
+                                            "verbs": ["get", "list"],
+                                        },
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["events"],
+                                            "verbs": [
+                                                "list",
+                                                "watch",
+                                                "create",
+                                                "update",
+                                                "patch",
+                                            ],
+                                        },
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["persistentvolumes"],
+                                            "verbs": [
+                                                "get",
+                                                "list",
+                                                "watch",
+                                                "create",
+                                                "delete",
+                                                "patch",
+                                            ],
+                                        },
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["persistentvolumeclaims"],
+                                            "verbs": ["get", "list", "watch", "update"],
+                                        },
+                                        {
+                                            "apiGroups": ["storage.k8s.io"],
+                                            "resources": ["storageclasses"],
+                                            "verbs": ["get", "list", "watch"],
+                                        },
+                                        {
+                                            "apiGroups": ["snapshot.storage.k8s.io"],
+                                            "resources": ["volumesnapshots"],
+                                            "verbs": ["get", "list"],
+                                        },
+                                        {
+                                            "apiGroups": ["snapshot.storage.k8s.io"],
+                                            "resources": ["volumesnapshotcontents"],
+                                            "verbs": [
+                                                "create",
+                                                "get",
+                                                "list",
+                                                "watch",
+                                                "update",
+                                                "delete",
+                                            ],
+                                        },
+                                        {
+                                            "apiGroups": ["snapshot.storage.k8s.io"],
+                                            "resources": ["volumesnapshotclasses"],
+                                            "verbs": ["get", "list", "watch"],
+                                        },
+                                        {
+                                            "apiGroups": ["storage.k8s.io"],
+                                            "resources": ["volumeattachments"],
+                                            "verbs": [
+                                                "get",
+                                                "list",
+                                                "watch",
+                                                "update",
+                                                "patch",
+                                            ],
+                                        },
+                                        {
+                                            "apiGroups": ["storage.k8s.io"],
+                                            "resources": ["volumeattachments/status"],
+                                            "verbs": ["patch"],
+                                        },
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": [
+                                                "persistentvolumeclaims/status"
+                                            ],
+                                            "verbs": ["update", "patch"],
+                                        },
+                                        {
+                                            "apiGroups": ["storage.k8s.io"],
+                                            "resources": ["csinodes"],
+                                            "verbs": ["get", "list", "watch"],
+                                        },
+                                        {
+                                            "apiGroups": ["snapshot.storage.k8s.io"],
+                                            "resources": [
+                                                "volumesnapshotcontents/status"
+                                            ],
+                                            "verbs": ["update"],
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
         )
         self.model.unit.status = ActiveStatus()
 

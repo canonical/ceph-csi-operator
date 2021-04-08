@@ -46,6 +46,12 @@ class CephCsiCharm(CharmBase):
             "host": "/var/lib/kubelet/plugins_registry/{}-reg.sock".format(driver_name),
         }
 
+        default_environment = {
+            "NODE_ID": {"field": {"path": "spec.nodeName", "api-version": "v1"}},
+            "POD_IP": {"field": {"path": "status.podIP", "api-version": "v1"}},
+            "CSI_ENDPOINT": "unix://{}".format(csi_socket.get("container")),
+        }
+
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
             {
@@ -91,16 +97,11 @@ class CephCsiCharm(CharmBase):
                                 },
                             },
                         ],
-                        "envConfig": {
-                            "NODE_ID": {
-                                "field": {"path": "spec.nodeName", "api-version": "v1"}
-                            },
-                            "POD_IP": {
-                                "field": {"path": "status.podIP", "api-version": "v1"}
-                            },
-                            "CSI_ENDPOINT": "unix://{}".format(
-                                csi_socket.get("container")
-                            ),
+                        "envConfig": default_environment,
+                        "kubernetes": {
+                            "securityContext": {
+                                "privileged": True,
+                            }
                         },
                     },
                     {
@@ -167,17 +168,7 @@ class CephCsiCharm(CharmBase):
                             # },
                             # {"name": "keys-tmp-dir", "mountPath": "/tmp/csi/keys"},
                         ],
-                        "envConfig": {
-                            "NODE_ID": {
-                                "field": {"path": "spec.nodeName", "api-version": "v1"}
-                            },
-                            "POD_IP": {
-                                "field": {"path": "status.podIP", "api-version": "v1"}
-                            },
-                            "CSI_ENDPOINT": "unix://{}".format(
-                                csi_socket.get("container")
-                            ),
-                        },
+                        "envConfig": default_environment,
                         "kubernetes": {
                             "securityContext": {
                                 "privileged": True,
@@ -222,7 +213,29 @@ class CephCsiCharm(CharmBase):
                         },
                     },
                 ],
-            }
+            },
+            k8s_resources={
+                "kubernetesResources": {
+                    "serviceAccounts": [
+                        {
+                            "name": "cephfs-csi-nodeplugin",
+                            "roles": [
+                                {
+                                    "name": "cephfs-csi-nodeplugin",
+                                    "global": True,
+                                    "rules": [
+                                        {
+                                            "apiGroups": [""],
+                                            "resources": ["nodes"],
+                                            "verbs": ["get"],
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
         )
         self.model.unit.status = ActiveStatus()
 
