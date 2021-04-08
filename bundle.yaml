@@ -1,8 +1,8 @@
 bundle: kubernetes
 applications:
-  ceph-csi-provisioner:
-    charm: cs:ceph-csi-provisioner
-    source: ./operators/ceph-csi-provisioner
+  ceph-csi-nodeplugin:
+    charm: cs:ceph-csi-nodeplugin
+    source: ./operators/ceph-csi-nodeplugin
     scale: 3
   ceph-csi-driver:
     charm: cs:ceph-csi-driver
