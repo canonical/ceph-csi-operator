@@ -332,7 +332,12 @@ class CephCsiCharm(CharmBase):
                             ],
                         }
                     ]
-                }
+                },
+                "configMaps": {
+                    "ceph-csi-config": {
+                        "config.json": str(self.model.config.get("csi-config"))
+                    }
+                },
             },
         )
         self.model.unit.status = ActiveStatus()

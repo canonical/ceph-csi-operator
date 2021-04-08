@@ -3,15 +3,7 @@ options:
     type: int
     default: 8681
     description: Port to expose the liveness metrics
-  cluster-id:
+  csi-config:
     type: string
-    default: ""
-    description: Ceph cluster ID
-  monitors:
-    type: string
-    default: ""
-    description: Comma separated list of Ceph monitors
-  subvolume-group:
-    type: string
-    default: ""
-    description: CephFS subvolume
+    default: "[]"
+    description: JSON string of CSI configuration
