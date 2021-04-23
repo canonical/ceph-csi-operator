@@ -39,3 +39,6 @@ resources:
     description: Ceph CSI Attacher image
     auto-fetch: true
     upstream-source: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
+requires:
+  ceph:
+    interface: ceph-client

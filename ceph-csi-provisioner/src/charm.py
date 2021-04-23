@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import logging
 import os
 import socket
@@ -19,17 +20,25 @@ class CephCsiCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
+        self.framework.observe(self.on.install, self.set_pod_spec)
+        self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
+        self.framework.observe(self.on.config_changed, self.set_pod_spec)
+        self.framework.observe(self.on["ceph"].relation_changed, self.set_pod_spec)
+
         self.csi_image = OCIImageResource(self, "csi-image")
         self.provisioner_image = OCIImageResource(self, "provisioner-image")
         self.resizer_image = OCIImageResource(self, "resizer-image")
         self.snapshotter_image = OCIImageResource(self, "snapshotter-image")
         self.attacher_image = OCIImageResource(self, "attacher-image")
 
-        self.framework.observe(self.on.install, self.set_pod_spec)
-        self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
-        self.framework.observe(self.on.config_changed, self.set_pod_spec)
-
     def set_pod_spec(self, event):
+        ceph_monitors = []
+        if self.model.relations.get("ceph"):
+            ceph = self.model.relations["ceph"]
+            for relation in ceph:
+                for unit in list(relation.units):
+                    ceph_monitors.append(relation.data[unit]["ceph-public-address"])
+
         try:
             csi_image = self.csi_image.fetch()
             provisioner_image = self.provisioner_image.fetch()
@@ -43,6 +52,13 @@ class CephCsiCharm(CharmBase):
 
         driver_name = "cephfs.csi.ceph.com"
 
+        csi_config = [
+            {
+                "clusterID": self.model.config.get("cluster-id"),
+                "monitors": ceph_monitors,
+            }
+        ]
+
         csi_socket = {
             "container": "/csi/csi.sock",
             "host": "/var/lib/kubelet/plugins{}/csi.sock".format(driver_name),
@@ -50,9 +66,9 @@ class CephCsiCharm(CharmBase):
 
         csi_volume = {
             "name": "socket-dir",
-            "mountPath": os.path.dirname(csi_socket.get("container")),
+            "mountPath": os.path.dirname(str(csi_socket.get("container"))),
             "hostPath": {
-                "path": os.path.dirname(csi_socket.get("host")),
+                "path": os.path.dirname(str(csi_socket.get("host"))),
                 "type": "DirectoryOrCreate",
             },
         }
@@ -205,10 +221,12 @@ class CephCsiCharm(CharmBase):
                             {
                                 "name": "socket-dir",
                                 "mountPath": os.path.dirname(
-                                    csi_socket.get("container")
+                                    str(csi_socket.get("container"))
                                 ),
                                 "hostPath": {
-                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "path": os.path.dirname(
+                                        str(csi_socket.get("host"))
+                                    ),
                                     "type": "DirectoryOrCreate",
                                 },
                             }
@@ -334,9 +352,7 @@ class CephCsiCharm(CharmBase):
                     ]
                 },
                 "configMaps": {
-                    "ceph-csi-config": {
-                        "config.json": str(self.model.config.get("csi-config"))
-                    }
+                    "ceph-csi-config": {"config.json": json.dumps(csi_config)}
                 },
             },
         )

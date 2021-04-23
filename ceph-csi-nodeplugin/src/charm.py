@@ -77,21 +77,23 @@ class CephCsiCharm(CharmBase):
                             {
                                 "name": "socket-dir",
                                 "mountPath": os.path.dirname(
-                                    csi_socket.get("container")
+                                    str(csi_socket.get("container"))
                                 ),
                                 "hostPath": {
-                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "path": os.path.dirname(
+                                        str(csi_socket.get("host"))
+                                    ),
                                     "type": "DirectoryOrCreate",
                                 },
                             },
                             {
                                 "name": "registration-dir",
                                 "mountPath": os.path.dirname(
-                                    registration_socket.get("container")
+                                    str(registration_socket.get("container"))
                                 ),
                                 "hostPath": {
                                     "path": os.path.dirname(
-                                        registration_socket.get("host")
+                                        str(registration_socket.get("host"))
                                     ),
                                     "type": "DirectoryOrCreate",
                                 },
@@ -119,10 +121,12 @@ class CephCsiCharm(CharmBase):
                             {
                                 "name": "socket-dir",
                                 "mountPath": os.path.dirname(
-                                    csi_socket.get("container")
+                                    str(csi_socket.get("container"))
                                 ),
                                 "hostPath": {
-                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "path": os.path.dirname(
+                                        str(csi_socket.get("host"))
+                                    ),
                                     "type": "DirectoryOrCreate",
                                 },
                             },
@@ -162,11 +166,6 @@ class CephCsiCharm(CharmBase):
                                 "mountPath": "/run/mount",
                                 "hostPath": {"path": "/run/mount"},
                             },
-                            # {
-                            #     "name": "ceph-csi-config",
-                            #     "mountPath": "/etc/ceph-csi-config",
-                            # },
-                            # {"name": "keys-tmp-dir", "mountPath": "/tmp/csi/keys"},
                         ],
                         "envConfig": default_environment,
                         "kubernetes": {
@@ -192,10 +191,12 @@ class CephCsiCharm(CharmBase):
                             {
                                 "name": "socket-dir",
                                 "mountPath": os.path.dirname(
-                                    csi_socket.get("container")
+                                    str(csi_socket.get("container"))
                                 ),
                                 "hostPath": {
-                                    "path": os.path.dirname(csi_socket.get("host")),
+                                    "path": os.path.dirname(
+                                        str(csi_socket.get("host"))
+                                    ),
                                     "type": "DirectoryOrCreate",
                                 },
                             }
