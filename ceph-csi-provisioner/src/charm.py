@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import json
+import kubernetes
 import logging
 import os
 import socket
 
+from pathlib import Path
 from ops.charm import CharmBase
 from ops.main import main
 from ops.framework import StoredState
@@ -31,7 +33,76 @@ class CephCsiCharm(CharmBase):
         self.snapshotter_image = OCIImageResource(self, "snapshotter-image")
         self.attacher_image = OCIImageResource(self, "attacher-image")
 
+    @staticmethod
+    def _get_kubernetes_environment():
+        """
+        Workaround due to this bug: https://bugs.launchpad.net/juju/+bug/1892255
+        """
+        cluster_env = {}
+        for e in Path("/proc/1/environ").read_text().split("\x00"):
+            if "KUBERNETES_SERVICE" in e:
+                key, value = e.split("=")
+                cluster_env[key] = value
+
+        os.environ.update(cluster_env)
+
+    def apply_storage_class(self):
+        """
+        Currently, v3 Juju pod spec does not support StorageClass.  We'll
+        have to deploy it directly via the Kubernetes API.
+        """
+        self._get_kubernetes_environment()
+
+        configuration = kubernetes.config.load_incluster_config()
+        with kubernetes.client.ApiClient(configuration) as api_client:
+            api_instance = kubernetes.client.StorageV1beta1Api(api_client)
+            sc = {
+                "provisioner": "rbd.csi.ceph.com",
+                "reclaim_policy": self.model.config.get("reclaim-policy"),
+                "allow_volume_expansion": self.model.config.get(
+                    "allow-volume-expansion"
+                ),
+                "mount_options": self.model.config.get("mount-options").split(","),
+                "parameters": {
+                    "clusterID": self.model.config.get("cluster-id"),
+                    "pool": self.model.config.get("pool-name"),
+                    "imageFeatures": "layering",
+                    "csi.storage.k8s.io/provisioner-secret-name": "ceph-csi-secret",
+                    "csi.storage.k8s.io/provisioner-secret-namespace": "default",
+                    "csi.storage.k8s.io/controller-expand-secret-name": "ceph-csi-secret",
+                    "csi.storage.k8s.io/controller-expand-secret-namespace": "default",
+                    "csi.storage.k8s.io/node-stage-secret-name": "ceph-csi-secret",
+                    "csi.storage.k8s.io/node-stage-secret-namespace": "default",
+                    "csi.storage.k8s.io/fstype": self.model.config.get("fs-type"),
+                },
+                "metadata": {"name": "csi-rbd-sc", "namespace": self.model.name},
+            }
+            api_instance.create_storage_class(sc)
+
+    def remove_storage_class(self):
+        """
+        Due to StorageClass not being namespaces and `create_storage_class` erroring
+        when trying to re-apply, we need to clean up the existing StorageClass on certain
+        events.
+        """
+        self._get_kubernetes_environment()
+
+        configuration = kubernetes.config.load_incluster_config()
+        with kubernetes.client.ApiClient(configuration) as api_client:
+            api_instance = kubernetes.client.StorageV1beta1Api(api_client)
+            api_instance.delete_storage_class("csi-rbd-sc")
+
     def set_pod_spec(self, event):
+        """
+        Setup all the compononets needed.
+        """
+        if event in [
+            self.on.remove,
+            self.on.config_changed,
+            self.on["ceph"].relation_changed,
+        ]:
+            self.delete_storage_class()
+
         ceph_user = None
         ceph_key = None
         ceph_monitors = []
@@ -369,6 +440,7 @@ class CephCsiCharm(CharmBase):
                 },
             },
         )
+        self.apply_storage_class()
         self.model.unit.status = ActiveStatus()
 
 

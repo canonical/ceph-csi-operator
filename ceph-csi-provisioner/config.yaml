@@ -4,19 +4,26 @@ options:
     default: 8681
     description: Port to expose the liveness metrics
   cluster-id:
-  csi-config:
     type: string
     default: ""
     description: Ceph cluster ID
-  monitors:
+  pool-name:
     type: string
-    default: ""
-    description: Comma separated list of Ceph monitors
-  subvolume-group:
+    default: "kubernetes"
+    description: "Ceph pool name"
+  fs-type:
     type: string
-    default: ""
-    description: CephFS subvolume
-  rados-namespace:
+    default: "ext4"
+    description: "Ceph filesystem type"
+  reclaim-policy:
     type: string
-    default: ""
-    description: RADOS gateway namespace
+    default: "Delete"
+    description: "StorageClass reclaim policy"
+  allow-volume-expansion:
+    type: boolean
+    default: true
+    description: "StorageClass allow expansion"
+  mount-options:
+    type: string
+    default: "discard"
+    description: "Comma separated StorageClass mount options"
