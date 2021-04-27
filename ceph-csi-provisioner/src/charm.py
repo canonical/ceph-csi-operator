@@ -32,11 +32,15 @@ class CephCsiCharm(CharmBase):
         self.attacher_image = OCIImageResource(self, "attacher-image")
 
     def set_pod_spec(self, event):
+        ceph_user = None
+        ceph_key = None
         ceph_monitors = []
         if self.model.relations.get("ceph"):
             ceph = self.model.relations["ceph"]
             for relation in ceph:
                 for unit in list(relation.units):
+                    ceph_user = relation.data[unit]["auth"]
+                    ceph_key = relation.data[unit]["key"]
                     ceph_monitors.append(relation.data[unit]["ceph-public-address"])
 
         try:
@@ -349,7 +353,16 @@ class CephCsiCharm(CharmBase):
                                 }
                             ],
                         }
-                    ]
+                    ],
+                    "secrets": [
+                        {
+                            "name": "ceph-csi-secret",
+                            "stringData": {
+                                "userID": ceph_user,
+                                "userKey": ceph_key,
+                            },
+                        }
+                    ],
                 },
                 "configMaps": {
                     "ceph-csi-config": {"config.json": json.dumps(csi_config)}
