@@ -166,6 +166,11 @@ class CephCsiCharm(CharmBase):
                                 "mountPath": "/run/mount",
                                 "hostPath": {"path": "/run/mount"},
                             },
+                            {
+                                "name": "keys-tmp-dir",
+                                "mountPath": "/tmp/csi/keys",
+                                "hostPath": {"path": "/tmp/csi/keys"},
+                            },
                         ],
                         "envConfig": default_environment,
                         "kubernetes": {

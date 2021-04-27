@@ -33,6 +33,8 @@ class CephCsiCharm(CharmBase):
         self.snapshotter_image = OCIImageResource(self, "snapshotter-image")
         self.attacher_image = OCIImageResource(self, "attacher-image")
 
+        self.driver_name = "cephfs.csi.ceph.com"
+
     @staticmethod
     def _get_kubernetes_environment():
         """
@@ -57,7 +59,7 @@ class CephCsiCharm(CharmBase):
         with kubernetes.client.ApiClient(configuration) as api_client:
             api_instance = kubernetes.client.StorageV1beta1Api(api_client)
             sc = {
-                "provisioner": "rbd.csi.ceph.com",
+                "provisioner": self.driver_name,
                 "reclaim_policy": self.model.config.get("reclaim-policy"),
                 "allow_volume_expansion": self.model.config.get(
                     "allow-volume-expansion"
@@ -68,16 +70,23 @@ class CephCsiCharm(CharmBase):
                     "pool": self.model.config.get("pool-name"),
                     "imageFeatures": "layering",
                     "csi.storage.k8s.io/provisioner-secret-name": "ceph-csi-secret",
-                    "csi.storage.k8s.io/provisioner-secret-namespace": "default",
+                    "csi.storage.k8s.io/provisioner-secret-namespace": self.model.name,
                     "csi.storage.k8s.io/controller-expand-secret-name": "ceph-csi-secret",
-                    "csi.storage.k8s.io/controller-expand-secret-namespace": "default",
+                    "csi.storage.k8s.io/controller-expand-secret-namespace": self.model.name,
                     "csi.storage.k8s.io/node-stage-secret-name": "ceph-csi-secret",
-                    "csi.storage.k8s.io/node-stage-secret-namespace": "default",
+                    "csi.storage.k8s.io/node-stage-secret-namespace": self.model.name,
                     "csi.storage.k8s.io/fstype": self.model.config.get("fs-type"),
                 },
-                "metadata": {"name": "csi-rbd-sc", "namespace": self.model.name},
+                "metadata": {"name": "ceph-csi-sc"},
             }
-            api_instance.create_storage_class(sc)
+            try:
+                api_instance.create_storage_class(sc)
+            except:
+                self.model.unit.status = MaintenanceStatus(
+                    "Failed to apply StorageClass"
+                )
+                self.remove_storage_class()
+                self.apply_storage_class()
 
     def remove_storage_class(self):
         """
@@ -90,7 +99,7 @@ class CephCsiCharm(CharmBase):
         configuration = kubernetes.config.load_incluster_config()
         with kubernetes.client.ApiClient(configuration) as api_client:
             api_instance = kubernetes.client.StorageV1beta1Api(api_client)
-            api_instance.delete_storage_class("csi-rbd-sc")
+            api_instance.delete_storage_class("ceph-csi-sc")
 
     def set_pod_spec(self, event):
         """
@@ -114,6 +123,10 @@ class CephCsiCharm(CharmBase):
                     ceph_key = relation.data[unit]["key"]
                     ceph_monitors.append(relation.data[unit]["ceph-public-address"])
 
+        if not ceph_user or not ceph_key:
+            self.model.unit.status = MaintenanceStatus("Waiting on ceph relation")
+            event.defer()
+
         try:
             csi_image = self.csi_image.fetch()
             provisioner_image = self.provisioner_image.fetch()
@@ -125,8 +138,6 @@ class CephCsiCharm(CharmBase):
             log.error(e)
             return
 
-        driver_name = "cephfs.csi.ceph.com"
-
         csi_config = [
             {
                 "clusterID": self.model.config.get("cluster-id"),
@@ -136,7 +147,7 @@ class CephCsiCharm(CharmBase):
 
         csi_socket = {
             "container": "/csi/csi.sock",
-            "host": "/var/lib/kubelet/plugins{}/csi.sock".format(driver_name),
+            "host": "/var/lib/kubelet/plugins{}/csi.sock".format(self.driver_name),
         }
 
         csi_volume = {
@@ -230,7 +241,7 @@ class CephCsiCharm(CharmBase):
                             "--controllerserver=true",
                             "--endpoint=unix://{}".format(csi_socket.get("container")),
                             "--v=5",
-                            "--drivername={}".format(driver_name),
+                            "--drivername={}".format(self.driver_name),
                             "--pidlimit=-1",
                         ],
                         "volumeConfig": [
@@ -270,6 +281,11 @@ class CephCsiCharm(CharmBase):
                                 "name": "host-mount",
                                 "mountPath": "/run/mount",
                                 "hostPath": {"path": "/run/mount"},
+                            },
+                            {
+                                "name": "keys-tmp-dir",
+                                "mountPath": "/tmp/csi/keys",
+                                "hostPath": {"path": "/tmp/csi/keys"},
                             },
                         ],
                         "envConfig": default_environment,
@@ -429,8 +445,8 @@ class CephCsiCharm(CharmBase):
                         {
                             "name": "ceph-csi-secret",
                             "stringData": {
-                                "userID": ceph_user,
-                                "userKey": ceph_key,
+                                "adminID": ceph_user,
+                                "adminKey": ceph_key,
                             },
                         }
                     ],
