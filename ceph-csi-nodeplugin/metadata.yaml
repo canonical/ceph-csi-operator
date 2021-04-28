@@ -18,9 +18,9 @@ resources:
     type: oci-image
     description: Ceph CSI image
     auto-fetch: true
-    upstream-source: quay.io/cephcsi/cephcsi:v3.2.1
+    upstream-source: quay.io/cephcsi/cephcsi:v3.3.1
   registrar-image:
     type: oci-image
     description: Ceph CSI Registrar image
     auto-fetch: true
-    upstream-source: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
+    upstream-source: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.2.0

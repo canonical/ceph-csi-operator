@@ -67,6 +67,7 @@ class CephCsiCharm(CharmBase):
                 "mount_options": self.model.config.get("mount-options").split(","),
                 "parameters": {
                     "clusterID": self.model.config.get("cluster-id"),
+                    "fsName": self.model.config.get("fs-name"),
                     "pool": self.model.config.get("pool-name"),
                     "imageFeatures": "layering",
                     "csi.storage.k8s.io/provisioner-secret-name": "ceph-csi-secret",
@@ -286,6 +287,11 @@ class CephCsiCharm(CharmBase):
                                 "name": "keys-tmp-dir",
                                 "mountPath": "/tmp/csi/keys",
                                 "hostPath": {"path": "/tmp/csi/keys"},
+                            },
+                            {
+                                "name": "ceph-csi-config",
+                                "mountPath": "/etc/ceph-csi-config",
+                                "hostPath": {"path": "/etc/ceph-csi-config"},
                             },
                         ],
                         "envConfig": default_environment,

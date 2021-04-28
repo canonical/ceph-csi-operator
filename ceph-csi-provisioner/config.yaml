@@ -7,6 +7,10 @@ options:
     type: string
     default: ""
     description: Ceph cluster ID
+  fs-name:
+    type: string
+    default: "kubernetes"
+    description: "Ceph fs name"
   pool-name:
     type: string
     default: "kubernetes"

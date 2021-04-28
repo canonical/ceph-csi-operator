@@ -18,27 +18,27 @@ resources:
     type: oci-image
     description: Ceph CSI image
     auto-fetch: true
-    upstream-source: quay.io/cephcsi/cephcsi:v3.2.1
+    upstream-source: quay.io/cephcsi/cephcsi:v3.3.1
   provisioner-image:
     type: oci-image
     description: Ceph CSI Provisioner image
     auto-fetch: true
-    upstream-source: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4
+    upstream-source: k8s.gcr.io/sig-storage/csi-provisioner:v2.2.0
   resizer-image:
     type: oci-image
     description: Ceph CSI Resizer image
     auto-fetch: true
-    upstream-source: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1
+    upstream-source: k8s.gcr.io/sig-storage/csi-resizer:v1.1.0
   snapshotter-image:
     type: oci-image
     description: Ceph CSI Snapshotter image
     auto-fetch: true
-    upstream-source: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2
+    upstream-source: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3
   attacher-image:
     type: oci-image
     description: Ceph CSI Attacher image
     auto-fetch: true
-    upstream-source: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
+    upstream-source: k8s.gcr.io/sig-storage/csi-attacher:v3.2.0
 requires:
   ceph:
     interface: ceph-client
